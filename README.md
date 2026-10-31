@@ -8,6 +8,7 @@
 An animated, multi-species procedural desktop companion for Windows. Built in pure Python using zero heavy game engines — featuring transparent window keying, smooth vector animations, 14 unique creatures, 12 dynamic color themes, physics-based dragging, mini-games, and a progressive Tamagotchi evolution system.
 
 ---
+<img width="150" height="170" alt="image" src="https://github.com/user-attachments/assets/9c3013e6-2c2e-4021-88e2-d70bf5d880ab" />
 
 ## 🌟 Highlights
 
