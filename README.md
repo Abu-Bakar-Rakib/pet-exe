@@ -9,6 +9,8 @@ An animated, multi-species procedural desktop companion for Windows. Built in pu
 
 ---
 <img width="150" height="170" alt="image" src="https://github.com/user-attachments/assets/9c3013e6-2c2e-4021-88e2-d70bf5d880ab" />
+<img width="136" height="123" alt="image" src="https://github.com/user-attachments/assets/0490158a-6a78-40ff-8b7c-c1c3109e4218" />
+<img width="131" height="189" alt="image" src="https://github.com/user-attachments/assets/329c4e3d-b4d3-4abc-8424-3b53ed822f0a" />
 
 ## 🌟 Highlights
 
