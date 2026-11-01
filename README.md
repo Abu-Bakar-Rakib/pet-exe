@@ -8,15 +8,6 @@
 An animated, multi-species procedural desktop companion for Windows. Built in pure Python using zero heavy game engines — featuring transparent window keying, smooth vector animations, 14 unique creatures, 12 dynamic color themes, physics-based dragging, mini-games, and a progressive Tamagotchi evolution system.
 
 ---
-<img width="150" height="170" alt="image" src="https://github.com/user-attachments/assets/9c3013e6-2c2e-4021-88e2-d70bf5d880ab" />
-<img width="136" height="123" alt="image" src="https://github.com/user-attachments/assets/0490158a-6a78-40ff-8b7c-c1c3109e4218" />
-<img width="131" height="189" alt="image" src="https://github.com/user-attachments/assets/329c4e3d-b4d3-4abc-8424-3b53ed822f0a" />
-<img width="95" height="193" alt="image" src="https://github.com/user-attachments/assets/edaa1a96-8321-4ae3-af61-a9b2dc1cab34" />
-<img width="112" height="130" alt="image" src="https://github.com/user-attachments/assets/ab10c773-281d-42f0-bcde-580644c71298" />
-<img width="106" height="103" alt="image" src="https://github.com/user-attachments/assets/2731e2fa-b8c4-42eb-a5ff-a1a7d521fee1" />
-<img width="83" height="112" alt="image" src="https://github.com/user-attachments/assets/4df40e64-7fab-4d9c-ac82-8c7ce77a8ed5" />
-<img width="80" height="136" alt="image" src="https://github.com/user-attachments/assets/c66ec87c-5c1d-42a8-8875-6c4e431f70ce" />
-<img width="110" height="117" alt="image" src="https://github.com/user-attachments/assets/bc51f4f9-b2b5-4c82-b06d-3b12fe3eebaa" />
 
 ## 🌟 Highlights
 
@@ -28,7 +19,9 @@ An animated, multi-species procedural desktop companion for Windows. Built in pu
 - **🎮 Built-in Activities**: Backflips, Dance Parties, Rock-Paper-Scissors, Fortune Teller (8-Ball), and Playing Dead.
 - **⏱️ Focus Companion**: Built-in 15m and 25m Pomodoro productivity sessions with animated timers.
 - **🎩 Wardrobe & Hats**: Equip Top Hats, Cyber Shades, Royal Crowns, Devil Horns, Wizard Hats, Angel Halos, and Cute Bows.
-- **🧠 SQLite Memory & Needs**: Real-time hunger, trust, XP leveling, pat counters, and persistent activity logging stored in SQLite.
+- **🧠 100% Offline SQLite Storage**: Real-time hunger, trust, XP leveling, pat counters, and persistent activity logging stored locally in `~/.pet_exe/pet.db` — runs completely offline with zero internet needed.
+- **🎛️ Windows System Tray ("Hidden Icons")**: Sits quietly in your Windows taskbar tray (`^`) with quick controls to Show/Hide, Bring to Cursor, Feed, Profile, and Start on PC Boot.
+- **🛑 Clean Quit & Off Switch**: Selecting "Quit" terminates all background threads and processes instantly — when you turn it off, it is completely off.
 - **🛑 Global Emergency Kill Switch**: Type `"sit boy"` anywhere on your PC at any time to instantly pacify and freeze your pet.
 
 ---
@@ -78,9 +71,23 @@ Switch palettes on the fly to recolor your pet's body, accents, and glows:
 ### Requirements
 - **OS**: Windows 10 or Windows 11
 - **Python**: Version 3.10 or higher
-- **Library**: `pynput` (for mouse tracking, activity monitor, and global kill switch)
+- **Libraries**: `pynput`, `pystray`, `pillow` (installed automatically via pip)
+- **Offline**: 100% offline capable (no cloud API or network required)
 
+### Quick Start
+```bash
+# 1. Clone repository
+git clone https://github.com/<your-username>/pet-exe.git
+cd pet-exe
 
+# 2. Install dependencies
+pip install pynput pystray pillow
+
+# 3. Launch your pet (Silent background launcher with tray icon)
+Double-click "Start Pet.vbs" or "PET.EXE" on your Desktop!
+```
+
+---
 
 ## 🕹️ Controls & Interactions
 

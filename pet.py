@@ -9,8 +9,16 @@ KILL SWITCH: type "sit boy" anywhere on your PC to freeze chaos mode.
 
 import tkinter as tk
 from tkinter import simpledialog, messagebox
-import sqlite3, os, json, time, math, random, threading
+import sqlite3, os, sys, json, time, math, random, threading
 from datetime import datetime
+from PIL import Image, ImageDraw
+
+try:
+    import pystray
+    from pystray import MenuItem as item, Menu as menu
+    HAVE_PYSTRAY = True
+except ImportError:
+    HAVE_PYSTRAY = False
 
 # ----------------------------------------------------------------- CONFIG ---
 APP_DIR  = os.path.join(os.path.expanduser("~"), ".pet_exe")
@@ -489,6 +497,10 @@ class PetApp:
         self.canvas.bind("<Button-3>", self._menu)
         self.root.protocol("WM_DELETE_WINDOW", self.quit_rude)
 
+        self._visible = True
+        self.tray_icon = None
+        self._setup_tray()
+
         self._startup_drama()
         self.root.after(FPS_MS, self.render)
         self.root.after(TICK_MS, self.tick)
@@ -544,6 +556,7 @@ class PetApp:
             self.speak(f"{tinfo['icon']} Palette: {tinfo['name']}!", 3)
             self._spawn_particle(80, 100, count=12, char="✦", color=tinfo["accent"] or "#ffe04b")
             self._save()
+            self._update_tray_icon()
 
     def add_xp(self, amount):
         old_lvl = max(1, self.xp // 100 + 1)
@@ -553,6 +566,7 @@ class PetApp:
             self.level = new_lvl
             self.speak(f"★ LEVEL UP! Lv.{self.level} ★", 5)
             self._spawn_particle(80, 110, count=15, char="★", color="#ffe04b")
+            self._update_tray_icon()
 
     def _startup_drama(self):
         gap = time.time() - self.store.getf("last_seen", time.time())
@@ -1573,12 +1587,6 @@ class PetApp:
             c.create_arc(bx - 8, by + 6, bx + 8, by + 16,
                          start=200, extent=120, style="arc", width=2, outline=eyec)
 
-        if self.sleeping:
-            c.create_text(bx + 44, by - 44, text="z Z z", font=("Segoe UI", 10, "italic", "bold"), fill="#ffffff")
-
-        # --- ACCESSORY ---
-        self._draw_accessory(c, bx, by, t)
-
     def _draw_accessory(self, c, bx, by, t):
         acc = self.accessory
         if acc == "tophat":
@@ -1700,8 +1708,12 @@ class PetApp:
         m.add_command(label="📊 Pet Profile & Stats", command=self.show_stats)
         m.add_command(label="🛡️ File Recovery", command=self.show_recovery)
         m.add_separator()
-        m.add_command(label="Say goodnight & quit", command=self.quit_nice)
-        m.add_command(label="Quit (rude)", command=self.quit_rude)
+        m.add_command(label="👁️ Hide to Hidden Icons Tray", command=self.toggle_visibility)
+        autostart_mark = " ✓" if self.is_autostart_enabled() else ""
+        m.add_command(label=f"🚀 Start with Windows{autostart_mark}", command=self.toggle_autostart)
+        m.add_separator()
+        m.add_command(label="Say goodnight & quit (Off)", command=self.quit_nice)
+        m.add_command(label="Quit completely (rude)", command=self.quit_rude)
         m.tk_popup(event.x_root, event.y_root)
 
     def set_accessory(self, acc):
@@ -1731,6 +1743,7 @@ class PetApp:
             self.speak(f"{sp_info['icon']} Transformed into {self.pet_name} ({sp_info['title']})!", 4)
             self._spawn_particle(80, 100, count=15, char="★", color="#ffe04b")
             self._save()
+            self._update_tray_icon()
 
     def show_stats(self):
         win = tk.Toplevel(self.root)
@@ -1760,6 +1773,7 @@ class PetApp:
                 title_lbl.config(text=f"{sp_info['icon']} {self.pet_name} [Lv. {self.level}]")
                 self.speak(f"Call me {self.pet_name}!", 4)
                 self._save()
+                self._update_tray_icon()
 
         tk.Button(header, text="✏️ Rename Pet", font=("Segoe UI", 8), bg="#2c2c3c", fg="#ddddff",
                   activebackground="#444455", command=rename).pack(pady=4)
@@ -1859,17 +1873,168 @@ class PetApp:
                   activebackground="#505068",
                   command=lambda: (self.feed("snack"), win.destroy())).pack(pady=14)
 
+    # -------------------------------------------------------- system tray ---
+    def _create_tray_image(self):
+        img = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+        d = ImageDraw.Draw(img)
+        p_col = self.get_theme_color("primary", "#1e1e28")
+        a_col = self.get_theme_color("accent", "#ff2244")
+        g_col = self.get_theme_color("glow", a_col)
+
+        d.ellipse((3, 3, 61, 61), fill=None, outline=g_col, width=3)
+        d.ellipse((7, 7, 57, 57), fill=p_col, outline=None)
+        d.ellipse((19, 23, 27, 33), fill=a_col)
+        d.ellipse((37, 23, 45, 33), fill=a_col)
+        d.ellipse((22, 25, 25, 28), fill="#ffffff")
+        d.ellipse((40, 25, 43, 28), fill="#ffffff")
+        d.arc((22, 34, 42, 46), start=20, end=160, fill=a_col, width=2)
+        return img
+
+    def _update_tray_icon(self):
+        if hasattr(self, "tray_icon") and self.tray_icon:
+            try:
+                self.tray_icon.icon = self._create_tray_image()
+                sp_info = PET_SPECIES.get(self.species, PET_SPECIES["shadow"])
+                state_str = " (Hidden)" if not getattr(self, "_visible", True) else ""
+                self.tray_icon.title = f"PET.EXE — {self.pet_name} ({sp_info['title']}) [Lv.{self.level}]{state_str}"
+            except Exception:
+                pass
+
+    def _setup_tray(self):
+        if not HAVE_PYSTRAY:
+            return
+        try:
+            sp_info = PET_SPECIES.get(self.species, PET_SPECIES["shadow"])
+            img = self._create_tray_image()
+
+            def on_toggle_click(icon, _):
+                self.root.after(0, self.toggle_visibility)
+
+            def on_summon_click(icon, _):
+                self.root.after(0, self.summon_to_cursor)
+
+            def on_profile_click(icon, _):
+                self.root.after(0, self.show_stats)
+
+            def on_feed_click(kind):
+                return lambda icon, _: self.root.after(0, lambda: self.feed(kind))
+
+            def on_autostart_click(icon, _):
+                self.root.after(0, self.toggle_autostart)
+
+            def on_quit_click(icon, _):
+                self.root.after(0, self.quit_nice)
+
+            tray_menu = menu(
+                item(lambda _: "👁️ Hide Pet" if getattr(self, "_visible", True) else "👁️ Show Pet", on_toggle_click, default=True),
+                item("📍 Bring to Cursor", on_summon_click),
+                menu.SEPARATOR,
+                item("📊 Pet Profile & Stats", on_profile_click),
+                item("🍖 Snack Cafe", menu(
+                    item("🍩 Donut", on_feed_click("donut")),
+                    item("☕ Espresso", on_feed_click("coffee")),
+                    item("🍕 Pizza", on_feed_click("pizza")),
+                    item("🖤 Void Snack", on_feed_click("void")),
+                )),
+                menu.SEPARATOR,
+                item("🚀 Start with Windows", on_autostart_click, checked=lambda _: self.is_autostart_enabled()),
+                menu.SEPARATOR,
+                item("❌ Quit & Turn Off", on_quit_click),
+            )
+
+            self.tray_icon = pystray.Icon(
+                "pet_exe",
+                img,
+                f"PET.EXE — {self.pet_name} ({sp_info['title']}) [Lv.{self.level}]",
+                tray_menu
+            )
+            threading.Thread(target=self.tray_icon.run, daemon=True).start()
+        except Exception as e:
+            print(f"[pet] tray init notice: {e}")
+            self.tray_icon = None
+
+    def toggle_visibility(self):
+        self._visible = not getattr(self, "_visible", True)
+        if self._visible:
+            self.root.deiconify()
+            self.speak("I'm back! ✨", 3)
+        else:
+            self.root.withdraw()
+        self._update_tray_icon()
+
+    def summon_to_cursor(self):
+        if not getattr(self, "_visible", True):
+            self.toggle_visibility()
+        mx, my = self.mon.mouse
+        sw = self.root.winfo_screenwidth()
+        sh = self.root.winfo_screenheight()
+        self.x = max(10, min(sw - W - 10, mx - W // 2))
+        self.y = max(10, min(sh - H - 10, my - H // 2 - 20))
+        self.vx = 0
+        self.vy = 0
+        self.root.geometry(f"{W}x{H}+{int(self.x)}+{int(self.y)}")
+        self.speak("You called? ✨", 3)
+        self._spawn_particle(80, 100, count=15, char="★", color="#ffe04b")
+
+    def _startup_vbs_path(self):
+        startup_dir = os.path.join(os.environ.get("APPDATA", ""), "Microsoft", "Windows", "Start Menu", "Programs", "Startup")
+        return os.path.join(startup_dir, "PetEXE.vbs")
+
+    def is_autostart_enabled(self):
+        return os.path.isfile(self._startup_vbs_path())
+
+    def toggle_autostart(self):
+        vbs_path = self._startup_vbs_path()
+        if self.is_autostart_enabled():
+            try:
+                os.remove(vbs_path)
+                self.speak("Autostart disabled! ❌", 3)
+            except Exception as e:
+                print(f"[pet] error removing autostart: {e}")
+        else:
+            try:
+                os.makedirs(os.path.dirname(vbs_path), exist_ok=True)
+                script_path = os.path.abspath(__file__)
+                content = (
+                    'Set WshShell = CreateObject("WScript.Shell")\n'
+                    f'WshShell.Run "pythonw.exe ""{script_path}""", 0, False\n'
+                )
+                with open(vbs_path, "w", encoding="utf-8") as f:
+                    f.write(content)
+                self.speak("Will start with Windows! 🚀", 3)
+            except Exception as e:
+                print(f"[pet] error enabling autostart: {e}")
+        self._update_tray_icon()
+
     # --------------------------------------------------------------- quits --
     def quit_nice(self):
         self.store.set("last_quit", "nice")
         self.corruption = max(0, self.corruption - 1)
-        self._save(); self.root.destroy()
+        self._shutdown()
 
     def quit_rude(self):
         self.store.set("last_quit", "rude")
         self.corruption = min(100, self.corruption + 5)
         self.store.remember("grudge", "left without saying goodnight")
-        self._save(); self.root.destroy()
+        self._shutdown()
+
+    def _shutdown(self):
+        self._save()
+        if hasattr(self, "tray_icon") and self.tray_icon:
+            try:
+                self.tray_icon.stop()
+            except Exception:
+                pass
+        if hasattr(self, "mon") and self.mon:
+            try:
+                self.mon.stop()
+            except Exception:
+                pass
+        try:
+            self.root.destroy()
+        except Exception:
+            pass
+        os._exit(0)
 
     def run(self):
         self.root.mainloop()
