@@ -16,7 +16,7 @@ An animated, multi-species procedural desktop companion for Windows. Built in pu
 <img width="106" height="103" alt="image" src="https://github.com/user-attachments/assets/2731e2fa-b8c4-42eb-a5ff-a1a7d521fee1" />
 <img width="83" height="112" alt="image" src="https://github.com/user-attachments/assets/4df40e64-7fab-4d9c-ac82-8c7ce77a8ed5" />
 <img width="80" height="136" alt="image" src="https://github.com/user-attachments/assets/c66ec87c-5c1d-42a8-8875-6c4e431f70ce" />
----
+
 ## 🌟 Highlights
 
 - **🪟 Pure Vector Transparency**: Runs seamlessly above all open windows with transparent color keying and zero border chrome.
